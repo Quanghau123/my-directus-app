@@ -1,0 +1,141 @@
+services:
+  database:
+    image: postgis/postgis:16-master
+    platform: linux/amd64
+    container_name: directus-db
+    volumes:
+      - ./data/database:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}", "-d", "${DB_DATABASE}", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  cache:
+    image: redis:6
+    container_name: cache
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  minio:
+    image: minio/minio:latest
+    container_name: directus-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web UI
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_S3_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_S3_SECRET}
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  directus:
+    image: directus/directus:11.7.2
+    container_name: directus-app
+    ports:
+      - ${DIRECTUS_PORT}:8055
+    volumes:
+      - ./uploads:/directus/uploads
+      - ./extensions:/directus/extensions
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      # Secret & URL
+      SECRET: ${DIRECTUS_SECRET}
+      PUBLIC_URL: ${PUBLIC_URL}
+
+      # Database
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # Redis Cache
+      CACHE_ENABLED: ${CACHE_ENABLED}
+      CACHE_AUTO_PURGE: ${CACHE_AUTO_PURGE}
+      CACHE_STORE: redis
+      REDIS: redis://cache:6379
+
+      # Admin
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+
+      # WebSocket & CORS
+      WEBSOCKETS_ENABLED: ${WEBSOCKETS_ENABLED}
+      CORS_ENABLED: ${CORS_ENABLED}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+
+      # Cookie
+      REFRESH_TOKEN_COOKIE_SECURE: ${REFRESH_TOKEN_COOKIE_SECURE}
+      REFRESH_TOKEN_COOKIE_SAME_SITE: ${REFRESH_TOKEN_COOKIE_SAME_SITE}
+      REFRESH_TOKEN_COOKIE_DOMAIN: ${REFRESH_TOKEN_COOKIE_DOMAIN}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
+      SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN}
+
+      # Extensions
+      EXTENSIONS_PATH: ${EXTENSIONS_PATH}
+      EXTENSIONS_AUTO_RELOAD: ${EXTENSIONS_AUTO_RELOAD}
+
+      # CSP
+      CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC: ${CONTENT_SECURITY_POLICY_DIRECTIVES__FRAME_SRC}
+
+      # S3 Storage (MinIO)
+      STORAGE_LOCATIONS: s3
+      STORAGE_S3_DRIVER: s3
+      STORAGE_S3_KEY: ${STORAGE_S3_KEY}
+      STORAGE_S3_SECRET: ${STORAGE_S3_SECRET}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET}
+      STORAGE_S3_REGION: ${STORAGE_S3_REGION}
+      STORAGE_S3_ENDPOINT: http://minio:9000
+      STORAGE_S3_FORCE_PATH_STYLE: true
+
+      # Email (optional)
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT}
+      EMAIL_SMTP_USER: ${EMAIL_SMTP_USER}
+      EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD}
+
+  nest:
+      build:
+        context: ../nestjs
+      ports:
+        - "3000:3000"
+      depends_on:
+        directus:
+          condition: service_started
+        cache:
+          condition: service_healthy 
+      env_file:
+        - .env             
+      environment:
+        DIRECTUS_URL: http://directus:8055
+        REDIS_HOST: cache
+        REDIS_PORT: 6379

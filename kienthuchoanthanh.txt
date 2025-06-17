@@ -1,0 +1,83 @@
+| Nội dung                                          | Mức độ | Ghi chú                                           |
+| ------------------------------------------------- | ------ | ------------------------------------------------- |
+| Kết nối tới Directus CMS                          | ✅      | Dùng `axios`, đọc `.env`, đăng nhập lấy token     |
+| Sử dụng Docker cho Directus                       | ✅      | Đã cài đặt và chạy được Directus UI               |
+| Tạo collection (product, user, category)          | ✅      | Đã thao tác qua UI                                |
+| Lấy dữ liệu từ CMS (REST API)                     | ✅      | Dùng `axios.get` với token                        |
+| Sử dụng `socket.io` để phát sự kiện               | ✅      | Tạo server, phát `product_created`, `user_joined` |
+| Tách mã thành module `services/`                  | ✅      | Tốt cho cấu trúc production                       |
+| Gửi đúng dữ liệu theo interface `Product`, `User` | ✅      | Dùng TypeScript interface mô tả dữ liệu           |
+| Phân tích lỗi & debug `403`, `.env`, token        | ✅      | Đã hiểu cách login, sửa lỗi credential, token     |
+
+---
+
+### ✅ 1. Đưa toàn bộ code vào NestJS project
+
+**Cấu trúc thư mục hợp lý:**
+
+```
+src/
+├── directus/
+│   ├── directus.module.ts        <-- Gọi API Directus
+│   ├── directus.service.ts
+│   └── interfaces/
+│       ├── product.interface.ts
+│       ├── category.interface.ts
+│       └── user.interface.ts
+├── socket/
+│   ├── socket.module.ts
+│   └── socket.gateway.ts         <-- Phát dữ liệu real-time
+├── app.module.ts
+├── main.ts
+```
+
+---
+
+### ✅ 2. Xử lý Webhook từ Directus
+
+*Vào Directus UI > Settings > Webhooks > Add Webhook*
+
+* URL: `http://localhost:3000/webhook/products`
+* Events: `items.create`, `items.update`
+* Collections: `products`
+
+Sau đó tạo 1 controller `WebhookController` để xử lý nhận request, rồi gọi `SocketGateway` để `emit`.
+
+---
+
+### 🔐 3. Thêm bảo mật và phân quyền
+
+* Lưu `access_token`, `refresh_token` trong memory hoặc Redis
+* Tự động làm mới token khi hết hạn
+* Gọi `/users/me` để lấy user hiện tại và phân quyền
+
+---
+
+### 🧩 4. Tùy chỉnh CMS
+
+* Thêm field `published_at`, `status`, `owner_id` vào collection `products`
+* Tạo `hook` hoặc `extension` trong Directus để xử lý logic backend
+* Tùy chỉnh nhiều role khác nhau trong CMS (admin, editor, viewer…)
+
+---
+
+### 📊 5. Hiển thị phía client
+
+* Tạo client React/Vue/NextJS:
+
+  * Gọi API Nest để lấy dữ liệu ban đầu
+  * Kết nối socket nhận `product_created`, `user_joined`
+  * Update real-time UI (dashboard, danh sách, biểu đồ)
+
+---
+
+| Việc làm thêm         | Mục đích                                              |
+| --------------------- | ----------------------------------------------------- |
+| 🧠 Cache Access Token | Tránh login mỗi lần (dùng memory hoặc Redis)          |
+| 🔄 Tự refresh token   | Khi token hết hạn, dùng `refresh_token` để lấy mới    |
+| 🔒 Middleware bảo mật | Kiểm tra token người dùng / phân quyền                |
+| 🧪 Viết Unit Test     | Đảm bảo service/controller chạy đúng                  |
+| 📁 DTO và Validation  | Validate dữ liệu từ/to Directus                       |
+| 📊 Log hoạt động      | Ghi lại các tương tác CMS, lỗi gọi API...             |
+| 🧩 Webhook tích hợp   | Gửi realtime từ Directus vào NestJS không cần polling |
+

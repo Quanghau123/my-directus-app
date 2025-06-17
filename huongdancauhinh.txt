@@ -1,0 +1,172 @@
+# Mục tiêu
+
+Tạo hệ thống CMS với cấu trúc mở rộng được, bao gồm:
+
+* Directus CMS (viết bằng Node.js)
+* PostgreSQL làm database
+* MinIO làm dịch vụ lưu trữ file tương thích S3
+* Docker Compose quản lý toàn bộ
+
+---
+
+## Bước 1: Yêu cầu trước
+
+Cần cài sẵn:
+
+* Docker & Docker Compose
+* Node.js >= 18 (kiểm tra bằng `node -v`)
+* `npx` (có sẵn nếu đã cài Node.js)
+
+---
+
+## Bước 2: Khởi tạo dự án
+
+Tạo dự án từ Directus CLI:
+
+```bash
+npx directus-template-cli@latest init my-directus-app
+cd my-directus-app
+```
+
+---
+
+## Bước 3: Cập nhật file `.env`
+
+Mở file `.env` và sửa lại như sau:
+
+```env
+# PostgreSQL
+DB_CLIENT=pg
+DB_HOST=db
+DB_PORT=5432
+DB_DATABASE=directus_db
+DB_USER=admin
+DB_PASSWORD=admin123
+
+# Directus admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
+KEY=supersecretkey
+
+# S3 / MinIO
+STORAGE_LOCATIONS=s3
+STORAGE_S3_DRIVER=s3
+STORAGE_S3_KEY=minioadmin
+STORAGE_S3_SECRET=minioadmin
+STORAGE_S3_BUCKET=directus-files
+STORAGE_S3_REGION=us-east-1
+STORAGE_S3_ENDPOINT=http://minio:9000
+STORAGE_S3_FORCE_PATH_STYLE=true
+```
+
+---
+
+## Bước 4: Thay thế nội dung `docker-compose.yml`
+
+Ghi đè toàn bộ nội dung file `docker-compose.yml` bằng:
+
+```yaml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: directus-db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: directus_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: directus-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  directus:
+    build:
+      context: .
+    container_name: directus-app
+    ports:
+      - "8055:8055"
+    depends_on:
+      - db
+      - minio
+    env_file:
+      - .env
+    volumes:
+      - ./src:/directus/extensions
+
+volumes:
+  pgdata:
+  miniodata:
+```
+
+---
+
+## Bước 5: Khởi động toàn bộ hệ thống
+
+Chạy lệnh:
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+## Bước 6: Truy cập các thành phần
+
+* Directus CMS: [http://localhost:8055](http://localhost:8055)
+* MinIO (giao diện web): [http://localhost:9001](http://localhost:9001)
+
+  * Đăng nhập MinIO:
+
+    * Username: `minioadmin`
+    * Password: `minioadmin`
+  * Tạo bucket: `directus-files` (tên này phải trùng với biến trong `.env`)
+
+---
+
+## Bước 7: Upload file và kiểm tra
+
+1. Vào Directus admin tại [http://localhost:8055](http://localhost:8055)
+2. Đăng nhập với email `admin@example.com` và mật khẩu `admin123`
+3. Vào phần "Settings" > "Files"
+4. Thử upload một file
+5. File sẽ được lưu vào MinIO, không phải trong container Directus
+
+---
+
+## Bước 8: Tùy biến thêm (tuỳ chọn)
+
+Bạn có thể mở rộng bằng cách thêm các đoạn mã vào:
+
+* `src/hooks/` – để chạy code khi tạo/sửa bản ghi
+* `src/endpoints/` – để thêm API tuỳ chỉnh
+* `src/extensions/` – để mở rộng UI hoặc thêm logic
+
+---
+
+## Kết luận
+
+Bạn đã hoàn thành hệ thống Directus CMS với:
+
+* Cấu trúc dự án chuẩn có thể mở rộng
+* Sử dụng PostgreSQL cho database
+* Sử dụng MinIO thay cho S3 để lưu file
+* Triển khai hoàn toàn bằng Docker
+
+---
+
+Nếu bạn muốn triển khai lên VPS, dùng AWS S3 thật hoặc kết hợp Redis, backup tự động… thì mình có thể hướng dẫn tiếp.

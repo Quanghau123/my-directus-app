@@ -1,0 +1,136 @@
+## 1. Khởi tạo hệ thống với Docker
+
+## 2. Tạo bảng dữ liệu (Collection)
+
+**Ví dụ:** Tạo bảng `products`
+
+* Vào Admin UI > Collections > Create Collection
+* Tên bảng: `products`
+* Thêm các fields:
+
+  * `name`: Text, bắt buộc
+  * `price`: Decimal
+  * `description`: Long Text
+  * `image`: File (chọn storage là `s3` nếu đã cấu hình)
+
+Tạo bảng `categories`:
+
+* Field: `title` (Text)
+* Field: `products` (Many-to-Many đến bảng `products`)
+
+---
+
+## 3. Lưu file lên S3
+
+* Khi tạo field `image`, chọn kiểu dữ liệu là `File`
+* Chọn `Storage: s3`
+* Khi thêm sản phẩm, bạn có thể upload ảnh → lưu lên S3 tự động
+
+---
+
+## 4. Phân quyền truy cập
+
+Vào Settings > Roles & Permissions
+
+**Ví dụ:** Role: `public`
+
+* Collection: `products`
+* Cho phép: `Read`
+* Kết quả: Không cần đăng nhập vẫn có thể `GET` sản phẩm qua API
+
+---
+
+## 5. Dùng REST API
+http://localhost:8055/auth/login (Content-Type: application/json)
+http://localhost:8055/files (Content-Type: multipart/form-data)
+
+**Ví dụ:** Lấy danh sách sản phẩm
+
+```http
+GET http://localhost:8055/items/products
+```
+
+**Tạo sản phẩm mới (yêu cầu token):**
+
+```http
+POST http://localhost:8055/items/products
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "name": "Com",
+  "price": 10000,
+  "description": "Ngon lắm",
+  "image": "913a9eb5-f5af-413b-a30b-79ca39867ce7",
+//many to many
+  "categories": [
+    { "id": 4 }
+  ]
+}
+```
+
+---
+
+## 6. Quan hệ giữa các bảng
+
+**Ví dụ:** Một sản phẩm thuộc nhiều danh mục
+
+* Trong bảng `products`, tạo field `categories`
+* Chọn kiểu `Many-to-Many` → liên kết tới bảng `categories`
+
+---
+
+## 7. Tạo người dùng và phân quyền
+
+* Tạo role mới: `editor`
+
+  * Cho phép `Create`, `Read`, `Update`
+  * Không cho `Delete`
+* Tạo user mới và gán vào role `editor`
+
+---
+
+## 8. Upload file
+
+**Cách 1: Qua Admin UI**
+
+* Trong bảng `products` > tạo bản ghi mới
+* Chọn file ảnh → tự động upload lên S3
+
+**Cách 2: Qua API**
+
+1. Upload file:
+
+```http
+POST http://localhost:8055/files
+```
+
+Sử dụng form-data với key `file`
+
+2. Dùng `file.id` để gán vào trường `image` khi tạo sản phẩm
+
+---
+
+## 9. Tạo dashboard
+
+* Vào Dashboards > Create
+* Thêm Card: "Total products"
+* Thêm biểu đồ: "Số sản phẩm theo danh mục"
+
+---
+
+## Tổng kết các bước chính
+
+| Bước | Nội dung          | Ví dụ                            |
+| ---- | ----------------- | -------------------------------- |
+| 1    | Khởi tạo hệ thống | Docker + PostgreSQL + S3         |
+| 2    | Tạo bảng          | `products`, `categories`         |
+| 3    | Quản lý file      | Lưu file vào S3                  |
+| 4    | Phân quyền        | Vai trò `public`, `editor`       |
+| 5    | API               | REST: CRUD sản phẩm              |
+| 6    | Quan hệ bảng      | Nhiều-nhiều: sản phẩm - danh mục |
+| 7    | User/Auth         | Gán quyền cho user               |
+| 8    | File upload       | Gắn ảnh vào sản phẩm             |
+| 9    | Dashboard         | Hiển thị thống kê trực quan      |
+
+
