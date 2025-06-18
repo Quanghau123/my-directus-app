@@ -25,6 +25,8 @@ export class DirectusAuthService {
   async login(): Promise<string | null> {
     const email = this.config.get<string>('ADMIN_EMAIL');
     const password = this.config.get<string>('ADMIN_PASSWORD');
+    const directusUrl =
+      this.config.get<string>('DIRECTUS_URL') || 'http://localhost:8055';
 
     if (!email || !password) {
       this.logger.error('!email || !password trong .env');
@@ -33,7 +35,7 @@ export class DirectusAuthService {
 
     try {
       const res = await firstValueFrom(
-        this.http.post<LoginResponse>('http://localhost:8055/auth/login', {
+        this.http.post<LoginResponse>(`${directusUrl}/auth/login`, {
           email,
           password,
         }),
@@ -69,6 +71,8 @@ export class DirectusAuthService {
   async getCurrentUser(): Promise<Record<string, unknown> | null> {
     await this.refreshTokenIfNeeded();
     const token = await this.getAccessToken();
+    const directusUrl =
+      this.config.get<string>('DIRECTUS_URL') || 'http://localhost:8055';
 
     if (!token) {
       this.logger.warn('Không tìm thấy access_token trong Redis');
@@ -77,7 +81,7 @@ export class DirectusAuthService {
 
     try {
       const response = await firstValueFrom(
-        this.http.get<{ data: unknown }>('http://localhost:8055/users/me', {
+        this.http.get<{ data: unknown }>(`${directusUrl}/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       );

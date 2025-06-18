@@ -10,29 +10,15 @@
 | Phân tích lỗi & debug `403`, `.env`, token        | ✅      | Đã hiểu cách login, sửa lỗi credential, token     |
 
 ---
-
-### ✅ 1. Đưa toàn bộ code vào NestJS project
-
-**Cấu trúc thư mục hợp lý:**
-
-```
-src/
-├── directus/
-│   ├── directus.module.ts        <-- Gọi API Directus
-│   ├── directus.service.ts
-│   └── interfaces/
-│       ├── product.interface.ts
-│       ├── category.interface.ts
-│       └── user.interface.ts
-├── socket/
-│   ├── socket.module.ts
-│   └── socket.gateway.ts         <-- Phát dữ liệu real-time
-├── app.module.ts
-├── main.ts
-```
-
----
-
+| Việc cần làm                      | Mô tả ngắn                                 |
+| --------------------------------- | ------------------------------------------ |
+| 1. Cấu trúc lại app NestJS        | Bỏ NextJS, dùng Nest làm SSR client        |
+| 2. Login Directus từ NestJS       | Gọi API với 1 tài khoản service            |
+| 3. Tạo collection CMS             | Gồm các trường đăng ký tài khoản CK        |
+| 4. Xây API FE                     | Form gửi thông tin, hiển thị số SV đăng ký |
+| 5. Thêm phân quyền trong Directus | Tạo roles và set permission đúng           |
+| 6. Tạo Sequence Diagram           | Dùng Mermaid cho flow user request         |
+-------
 ### ✅ 2. Xử lý Webhook từ Directus
 
 *Vào Directus UI > Settings > Webhooks > Add Webhook*

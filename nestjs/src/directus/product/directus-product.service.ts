@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
+import { ConfigService } from '@nestjs/config';
 import { Product } from '../interfaces/product.interface';
 import { DirectusAuthService } from '../auth/directus-auth.service';
 
@@ -16,16 +17,19 @@ export class DirectusProductService {
   constructor(
     private readonly http: HttpService,
     private readonly authService: DirectusAuthService,
+    private readonly config: ConfigService,
   ) {}
 
   async fetchProducts(): Promise<Product[]> {
     await this.authService.refreshTokenIfNeeded();
     const token = await this.authService.getAccessToken();
+    const directusUrl =
+      this.config.get<string>('DIRECTUS_URL') || 'http://localhost:8055';
 
     try {
       const res = await firstValueFrom(
         this.http.get<DirectusDataResponse<Product[]>>(
-          'http://localhost:8055/items/products',
+          `${directusUrl}/items/products`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },

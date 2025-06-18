@@ -1,0 +1,17 @@
+my-directus-app/
+--directus
+----.env
+----docker-compose.yaml
+--nestjs
+----src
+------directus
+--------directus.module.ts
+--------auth
+--------interfaces
+--------product
+------socket
+--------socket.gateway.ts
+--------socket.module.ts
+------app.module.ts
+------app.service.ts
+------main.ts

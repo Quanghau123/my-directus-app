@@ -127,7 +127,7 @@ services:
       build:
         context: ../nestjs
       ports:
-        - "3000:3000"
+        - "3000:3001"
       depends_on:
         directus:
           condition: service_started
@@ -136,6 +136,6 @@ services:
       env_file:
         - .env             
       environment:
-        DIRECTUS_URL: http://directus:8055
+        DIRECTUS_URL: http://directus-app:8055
         REDIS_HOST: cache
         REDIS_PORT: 6379
