@@ -96,3 +96,20 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+// 📁 File: Sequence Diagram (Mermaid)
+sequenceDiagram
+  participant U as User
+  participant FE as NestJS SSR
+  participant Directus as Directus API
+  participant Redis as Redis
+
+  U->>FE: Submit email/password
+  FE->>Directus: POST /auth/login
+  Directus-->>FE: access_token
+  FE->>Redis: Store token
+  FE-->>U: Set cookie(jwt)
+  U->>FE: Access / (homepage)
+  FE->>Redis: Validate jwt
+  Redis-->>FE: OK
+  FE-->>U: Render homepage

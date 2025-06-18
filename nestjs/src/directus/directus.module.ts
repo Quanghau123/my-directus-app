@@ -1,14 +1,11 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
-import { ConfigModule } from '@nestjs/config';
-import { ProductController } from './product/directus-product.controller';
-import { DirectusAuthService } from './auth/directus-auth.service';
-import { DirectusProductService } from './product/directus-product.service';
+import { ProductModule } from '../directus/product/product.module';
+import { AccountModule } from '../directus/account/account.module';
+import { UserModule } from '../directus/user/user.module';
+import { AuthModule } from '../directus/auth/auth.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule],
-  controllers: [ProductController],
-  providers: [DirectusAuthService, DirectusProductService],
-  exports: [DirectusAuthService, DirectusProductService],
+  imports: [ProductModule, AuthModule, AccountModule, UserModule],
+  exports: [ProductModule, AuthModule, AccountModule, UserModule],
 })
 export class DirectusModule {}

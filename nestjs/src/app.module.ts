@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DirectusModule } from './directus/directus.module';
 import { SocketModule } from './socket/socket.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { RedisModule, RedisModuleOptions } from '@nestjs-modules/ioredis';
 import * as path from 'path';
 
@@ -10,6 +11,9 @@ import * as path from 'path';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: path.resolve(__dirname, '../../../directus/.env'),
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, 'views'),
     }),
     RedisModule.forRootAsync({
       imports: [ConfigModule],
