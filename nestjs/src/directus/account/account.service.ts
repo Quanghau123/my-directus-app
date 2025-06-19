@@ -65,7 +65,9 @@ export class AccountService {
         params: {
           sort: `-${sortBy}`,
           limit,
-          filter: { status: { _neq: 'rejected' } },
+          filter: {
+            status: { _nin: ['rejected', 'pending'] },
+          },
         },
       },
     );
