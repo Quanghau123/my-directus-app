@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
+import { StudentAccountDto } from './dto/student-account.dto';
 import { AccountService } from './account.service';
+import { plainToInstance } from 'class-transformer';
 
 interface WebhookPayload {
   data: {
@@ -26,8 +28,11 @@ export class AccountController {
   }
 
   @Get('top')
-  async top(@Query('sortBy') sortBy: 'nav' | 'rank') {
-    return this.accountService.getTopUsers(sortBy);
+  async top(
+    @Query('sortBy') sortBy: 'nav' | 'rank',
+  ): Promise<StudentAccountDto[]> {
+    const students = await this.accountService.getTopUsers(sortBy);
+    return plainToInstance(StudentAccountDto, students);
   }
 
   @Post('webhook/update')
