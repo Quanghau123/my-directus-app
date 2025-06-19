@@ -1,6 +1,14 @@
-interface Account {
+export interface StudentAccount {
   id: string;
-  full_name: string;
+  student_id: string;
   email: string;
-  university: string;
+  phone: string;
+  university_name: string;
+  university_code: string;
+  referrer?: string;
+  nav?: number;
+  rank?: number;
+  status?: string;
+  account_code?: string;
+  internal_note?: string;
 }

@@ -123,18 +123,25 @@ services:
       EMAIL_SMTP_USER: ${EMAIL_SMTP_USER}
       EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD}
 
+    healthcheck:
+          test: ["CMD", "curl", "-f", "http://localhost:8055/server/health"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+          start_period: 30s
+
   nest:
       build:
         context: ../nestjs
       ports:
-        - "3000:3001"
+        - "3000:3000"
       depends_on:
         directus:
-          condition: service_started
+          condition: service_healthy
         cache:
-          condition: service_healthy 
+          condition: service_healthy
       env_file:
-        - .env             
+        - .env
       environment:
         DIRECTUS_URL: http://directus-app:8055
         REDIS_HOST: cache

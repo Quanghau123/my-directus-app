@@ -1,53 +1,80 @@
 import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { ConfigService } from '@nestjs/config';
-import { AxiosResponse } from 'axios';
-import { lastValueFrom } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
+import { SocketGateway } from '../../socket/socket.gateway';
+import { StudentAccount } from '../interfaces/account.interface';
 
 @Injectable()
 export class AccountService {
-  private readonly directusUrl: string;
-  private readonly directusToken: string;
+  private cmsUrl: string;
+  private token: string;
 
   constructor(
-    private readonly http: HttpService,
     private readonly config: ConfigService,
+    private readonly http: HttpService,
+    private readonly socket: SocketGateway,
   ) {
-    this.directusUrl =
-      this.config.get<string>('DIRECTUS_URL') || 'http://localhost:8055';
-    this.directusToken = this.config.get<string>('DIRECTUS_TOKEN') || '';
+    this.cmsUrl = this.config.get<string>('CMS_URL') ?? '';
+    this.token = this.config.get<string>('CMS_ACCESS_TOKEN') ?? '';
   }
 
-  async createAccount(
-    data: CreateAccountDto,
-  ): Promise<{ data: { id: string } }> {
-    const url = `${this.directusUrl}/items/account`;
-
-    const response: AxiosResponse<{ data: { id: string } }> =
-      await lastValueFrom(
-        this.http.post(url, data, {
-          headers: {
-            Authorization: `Bearer ${this.directusToken}`,
-          },
-        }),
-      );
-
-    return response.data;
+  private headers() {
+    return { Authorization: `Bearer ${this.token}` };
   }
 
-  async getTotalValidAccounts(): Promise<number> {
-    const url = `${this.directusUrl}/items/account?filter[account_status][_neq]=rejected&aggregate[count]=*`;
+  async createAccount(data: CreateAccountDto): Promise<StudentAccount> {
+    const payload = {
+      ...data,
+      status: 'pending',
+    };
 
-    const response: AxiosResponse<{ data: { count: number }[] }> =
-      await lastValueFrom(
-        this.http.get(url, {
-          headers: {
-            Authorization: `Bearer ${this.directusToken}`,
-          },
-        }),
-      );
+    const res = await this.http.axiosRef.post<{ data: StudentAccount }>(
+      `${this.cmsUrl}/items/student_account`,
+      payload,
+      { headers: this.headers() },
+    );
 
-    return response.data.data[0].count;
+    return res.data.data;
+  }
+
+  async countValidUsers(): Promise<number> {
+    const res = await this.http.axiosRef.get<{
+      data: { count: number }[];
+    }>(`${this.cmsUrl}/items/student_account`, {
+      headers: this.headers(),
+      params: {
+        aggregate: { count: '*' },
+        filter: { status: { _neq: 'rejected' } },
+      },
+    });
+
+    return res.data?.data?.[0]?.count ?? 0;
+  }
+
+  async getTopUsers(
+    sortBy: 'nav' | 'rank',
+    limit = 10,
+  ): Promise<StudentAccount[]> {
+    const res = await this.http.axiosRef.get<{ data: StudentAccount[] }>(
+      `${this.cmsUrl}/items/student_account`,
+      {
+        headers: this.headers(),
+        params: {
+          sort: `-${sortBy}`,
+          limit,
+          filter: { status: { _neq: 'rejected' } },
+        },
+      },
+    );
+
+    return res.data.data;
+  }
+
+  notifyNavRankUpdate(
+    id: string,
+    payload: { nav?: number; rank?: number },
+  ): void {
+    this.socket.broadcastUpdate(id, payload);
   }
 }

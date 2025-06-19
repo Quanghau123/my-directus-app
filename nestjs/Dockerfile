@@ -9,7 +9,5 @@ COPY . ./
 
 RUN npm run build
 
-COPY ./src/views ./dist/views
-
-EXPOSE 3001
+EXPOSE 3000
 CMD ["node", "dist/main"]

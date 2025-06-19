@@ -1,20 +1,43 @@
-import { Controller, Get, Post, Body, Res } from '@nestjs/common';
-import { AccountService } from './account.service';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-account.dto';
-import { Response } from 'express';
+import { AccountService } from './account.service';
+
+interface WebhookPayload {
+  data: {
+    id: string;
+    nav?: number;
+    rank?: number;
+  };
+}
 
 @Controller('account')
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
-  @Get('register')
-  async showRegisterPage(@Res() res: Response) {
-    const total = await this.accountService.getTotalValidAccounts();
-    res.render('register/index', { total });
+  @Post('register')
+  async register(@Body() dto: CreateAccountDto) {
+    return this.accountService.createAccount(dto);
   }
 
-  @Post('register')
-  async create(@Body() createAccountDto: CreateAccountDto) {
-    return this.accountService.createAccount(createAccountDto);
+  @Get('count-valid')
+  async countValid() {
+    const count = await this.accountService.countValidUsers();
+    return { count };
+  }
+
+  @Get('top')
+  async top(@Query('sortBy') sortBy: 'nav' | 'rank') {
+    return this.accountService.getTopUsers(sortBy);
+  }
+
+  @Post('webhook/update')
+  handleWebhook(@Body() body: WebhookPayload) {
+    const { id, nav, rank } = body.data;
+
+    if (id && (nav !== undefined || rank !== undefined)) {
+      this.accountService.notifyNavRankUpdate(id, { nav, rank });
+    }
+
+    return { ok: true };
   }
 }
