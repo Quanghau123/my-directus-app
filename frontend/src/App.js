@@ -16,12 +16,13 @@ function App() {
     });
   }, []);
 
-  const loadUsers = async () => {
-    const res = await axios.get('http://localhost:3000/account/top?sortBy=nav');
-    const count = await axios.get('http://localhost:3000/account/count-valid');
-    setTopUsers(res.data);
-    setValidCount(count.data.count);
-  };
+ const loadUsers = async () => {
+  const res = await axios.get('http://localhost:3000/account/top?sortBy=rank');
+  const count = await axios.get('http://localhost:3000/account/count-valid');
+  
+  setTopUsers(res.data);
+  setValidCount(count.data.count);
+};
 
 return (
   <>

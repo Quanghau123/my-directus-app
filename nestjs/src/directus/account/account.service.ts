@@ -58,18 +58,28 @@ export class AccountService {
     sortBy: 'nav' | 'rank',
     limit = 10,
   ): Promise<StudentAccount[]> {
+    const sortField = sortBy === 'rank' ? '-rank,-nav' : '-nav,-rank';
+
     const res = await this.http.axiosRef.get<{ data: StudentAccount[] }>(
       `${this.cmsUrl}/items/student_account`,
       {
         headers: this.headers(),
         params: {
-          sort: `-${sortBy}`,
+          sort: sortField,
           limit,
           filter: {
             status: { _nin: ['rejected', 'pending'] },
           },
         },
       },
+    );
+
+    console.table(
+      res.data.data.map((u) => ({
+        id: u.id,
+        nav: u.nav,
+        rank: u.rank,
+      })),
     );
 
     return res.data.data;
