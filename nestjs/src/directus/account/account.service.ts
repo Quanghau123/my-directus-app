@@ -45,11 +45,13 @@ export class AccountService {
       headers: this.headers(),
       params: {
         aggregate: { count: '*' },
-        filter: { status: { _neq: 'rejected' } },
+        filter: {
+          status: { _nin: ['rejected', 'pending'] },
+        },
       },
     });
 
-    return res.data?.data?.[0]?.count ?? 0;
+    return res.data.data[0].count;
   }
 
   async getTopUsers(
